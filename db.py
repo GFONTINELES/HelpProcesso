@@ -154,8 +154,13 @@ def listar_processos() -> pd.DataFrame:
     df = pd.DataFrame(data)
 
     # Renomeia colunas do banco → chaves internas para o app usar normalmente
+    # Renomeia colunas do banco → chaves internas para o app usar normalmente
     inv = {v: k for k, v in COL.items()}
     df = df.rename(columns=inv)
+
+    # ✅ Converte campos de texto para string, evitando NaN/float em .strip()
+    cols_texto = [c for c in df.columns if c not in ("id", "criado_em", "atualizado_em")]
+    df[cols_texto] = df[cols_texto].fillna("").astype(str)
 
     # Colunas de link processadas
     if "link_documento" in df.columns:
