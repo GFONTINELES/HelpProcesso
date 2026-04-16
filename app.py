@@ -159,56 +159,51 @@ def check_credentials(u, p):
 def is_admin(u):
     return u in st.secrets.get("admins", [])
 
-def lgpd_gate():
-    """
-    Exibe o modal de aceite LGPD.
-    - Aceitar → registra no banco e libera acesso (nunca mais aparece)
-    - Recusar → faz logout e bloqueia acesso (aparece novamente no próximo login)
-    """
-    if st.session_state.get("lgpd_ok"):
-        return True
-
-    # Verifica no banco se já aceitou antes
-    if usuario_aceitou_lgpd(_user):
-        st.session_state["lgpd_ok"] = True
-        return True
-
-    # Exibe o modal
+@st.dialog("🔒 Termo de Ciência — LGPD", width="large")
+def lgpd_modal():
     st.markdown("""
-    <div class="lgpd-overlay">
-      <div class="lgpd-card">
-        <div class="lgpd-icon">🔒</div>
-        <div class="lgpd-title">Termo de Ciência — LGPD</div>
-        <div class="lgpd-sub">Grupo Ferreira · Acesso a Dados Sensíveis</div>
-        <div class="lgpd-body">
-          Ao acessar este sistema, você declara estar ciente de que:<br><br>
-          • As informações aqui disponíveis são <strong>confidenciais e de uso interno</strong> do Grupo Ferreira.<br>
-          • O acesso é <strong>individual e intransferível</strong>, sendo vedado o compartilhamento de credenciais.<br>
-          • Os dados estão protegidos pela <strong>Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)</strong>.<br>
-          • O uso indevido ou compartilhamento não autorizado pode implicar em <strong>responsabilidade civil e criminal</strong>.<br>
-          • Seu aceite será <strong>registrado com data e hora</strong> para fins de auditoria.
-        </div>
-      </div>
+    <div style="text-align:center;margin-bottom:.5rem;">
+        <span style="font-size:.72rem;color:#4d7a5e;letter-spacing:.1em;text-transform:uppercase;">
+            Grupo Ferreira · Acesso a Dados Sensíveis
+        </span>
+    </div>
+    <div style="background:#e6f4ec;border:1px solid #b8ddc7;border-radius:10px;
+                padding:1rem 1.2rem;font-size:.85rem;color:#0d2a16;line-height:1.8;margin-bottom:1.2rem;">
+        Ao acessar este sistema, você declara estar ciente de que:<br><br>
+        • As informações aqui disponíveis são <strong>confidenciais e de uso interno</strong> do Grupo Ferreira.<br>
+        • O acesso é <strong>individual e intransferível</strong>, sendo vedado o compartilhamento de credenciais.<br>
+        • Os dados estão protegidos pela <strong>Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)</strong>.<br>
+        • O uso indevido ou compartilhamento não autorizado pode implicar em <strong>responsabilidade civil e criminal</strong>.<br>
+        • Seu aceite será <strong>registrado com data e hora</strong> para fins de auditoria.
     </div>
     """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns([1, 1, 1])
-    with col2:
-        if st.button("✅ Aceitar e Entrar", use_container_width=True):
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("✅ Aceitar e Entrar", use_container_width=True, type="primary"):
             try:
                 registrar_aceite_lgpd(_user)
                 st.session_state["lgpd_ok"] = True
                 st.rerun()
             except Exception as e:
                 st.error(f"Erro ao registrar aceite: {e}")
-    with col3:
+    with col2:
         if st.button("❌ Recusar e Sair", use_container_width=True):
-            # Limpa a sessão completamente — no próximo login o modal reaparece
             for k in ["auth", "username", "admin", "lgpd_ok"]:
                 st.session_state.pop(k, None)
-            st.warning("Acesso negado. Você precisa aceitar os termos para usar o sistema.")
-            st.stop()
+            st.rerun()
 
+
+def lgpd_gate():
+    if st.session_state.get("lgpd_ok"):
+        return True
+
+    if usuario_aceitou_lgpd(_user):
+        st.session_state["lgpd_ok"] = True
+        return True
+
+    # Abre o modal nativo — botões funcionam corretamente
+    lgpd_modal()
     return False
 def login_screen():
     _, col, _ = st.columns([1, 1.1, 1])
