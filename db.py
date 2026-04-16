@@ -208,3 +208,30 @@ def filter_opts(df: pd.DataFrame, col_key: str) -> list:
         return ["Todos"]
     vals = sorted({str(v).strip() for v in df[col_key].dropna() if str(v).strip()})
     return ["Todos"] + vals
+# ── LGPD ─────────────────────────────────────────────────────────────────────
+
+def usuario_aceitou_lgpd(usuario: str) -> bool:
+    """Verifica se o usuário já aceitou os termos."""
+    resp = requests.get(
+        f"{SUPABASE_URL}/rest/v1/aceites_lgpd?usuario=eq.{usuario}&select=id&limit=1",
+        headers=HEADERS,
+        timeout=10,
+    )
+    if not resp.ok:
+        return False
+    return len(resp.json()) > 0
+
+
+def registrar_aceite_lgpd(usuario: str) -> None:
+    """Registra o aceite do usuário na tabela aceites_lgpd."""
+    payload = {"usuario": usuario}
+    resp = requests.post(
+        f"{SUPABASE_URL}/rest/v1/aceites_lgpd",
+        headers=HEADERS,
+        json=payload,
+        timeout=10,
+    )
+    if not resp.ok:
+        raise requests.HTTPError(
+            f"{resp.status_code} — {resp.text[:300]}", response=resp
+        )

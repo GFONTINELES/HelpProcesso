@@ -10,6 +10,7 @@ from db import (
     listar_processos, inserir_processo, atualizar_processo, deletar_processo,
     filter_opts, drive_preview, drive_direct,
     COLS_TABELA, LABELS, COL, STATUS_OPTS, CRITICIDADE_OPTS,
+    usuario_aceitou_lgpd, registrar_aceite_lgpd,   # ← adicione aqui
 )
 
 def _img_b64(path: str) -> str:
@@ -139,6 +140,14 @@ table.fff-table tbody td.c-doc{text-align:center;white-space:nowrap;}
 ::-webkit-scrollbar{width:5px;height:5px;}
 ::-webkit-scrollbar-track{background:var(--vmt);}
 ::-webkit-scrollbar-thumb{background:var(--vc);border-radius:3px;}
+/* ── Modal LGPD ── */
+.lgpd-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;}
+.lgpd-card{background:var(--wh);border-radius:18px;padding:2.2rem 2rem 1.8rem;max-width:520px;width:90%;border:3px solid var(--am);box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.lgpd-icon{font-size:2.4rem;text-align:center;margin-bottom:.5rem;}
+.lgpd-title{font-family:'Oswald',sans-serif;font-size:1.3rem;color:var(--vd);text-align:center;font-weight:700;margin-bottom:.3rem;}
+.lgpd-sub{font-size:.72rem;color:var(--mu);text-align:center;letter-spacing:.1em;text-transform:uppercase;margin-bottom:1.1rem;}
+.lgpd-body{background:var(--vmt);border:1px solid var(--bd);border-radius:10px;padding:1rem 1.2rem;font-size:.82rem;color:var(--tx);line-height:1.7;margin-bottom:1.2rem;}
+.lgpd-body strong{color:var(--vd);}
 </style>
 """, unsafe_allow_html=True)
 
@@ -150,6 +159,57 @@ def check_credentials(u, p):
 def is_admin(u):
     return u in st.secrets.get("admins", [])
 
+def lgpd_gate():
+    """
+    Exibe o modal de aceite LGPD.
+    - Aceitar → registra no banco e libera acesso (nunca mais aparece)
+    - Recusar → faz logout e bloqueia acesso (aparece novamente no próximo login)
+    """
+    if st.session_state.get("lgpd_ok"):
+        return True
+
+    # Verifica no banco se já aceitou antes
+    if usuario_aceitou_lgpd(_user):
+        st.session_state["lgpd_ok"] = True
+        return True
+
+    # Exibe o modal
+    st.markdown("""
+    <div class="lgpd-overlay">
+      <div class="lgpd-card">
+        <div class="lgpd-icon">🔒</div>
+        <div class="lgpd-title">Termo de Ciência — LGPD</div>
+        <div class="lgpd-sub">Grupo Ferreira · Acesso a Dados Sensíveis</div>
+        <div class="lgpd-body">
+          Ao acessar este sistema, você declara estar ciente de que:<br><br>
+          • As informações aqui disponíveis são <strong>confidenciais e de uso interno</strong> do Grupo Ferreira.<br>
+          • O acesso é <strong>individual e intransferível</strong>, sendo vedado o compartilhamento de credenciais.<br>
+          • Os dados estão protegidos pela <strong>Lei Geral de Proteção de Dados (LGPD — Lei nº 13.709/2018)</strong>.<br>
+          • O uso indevido ou compartilhamento não autorizado pode implicar em <strong>responsabilidade civil e criminal</strong>.<br>
+          • Seu aceite será <strong>registrado com data e hora</strong> para fins de auditoria.
+        </div>
+      </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns([1, 1, 1])
+    with col2:
+        if st.button("✅ Aceitar e Entrar", use_container_width=True):
+            try:
+                registrar_aceite_lgpd(_user)
+                st.session_state["lgpd_ok"] = True
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erro ao registrar aceite: {e}")
+    with col3:
+        if st.button("❌ Recusar e Sair", use_container_width=True):
+            # Limpa a sessão completamente — no próximo login o modal reaparece
+            for k in ["auth", "username", "admin", "lgpd_ok"]:
+                st.session_state.pop(k, None)
+            st.warning("Acesso negado. Você precisa aceitar os termos para usar o sistema.")
+            st.stop()
+
+    return False
 def login_screen():
     _, col, _ = st.columns([1, 1.1, 1])
     with col:
@@ -181,6 +241,9 @@ if not st.session_state.get("auth"):
 _user  = st.session_state["username"]
 _admin = st.session_state.get("admin", False)
 
+# ── Verificação LGPD ──────────────────────────────────────────────────────────
+if not lgpd_gate():
+    st.stop()
 # ── Helpers de renderização ───────────────────────────────────────────────────
 
 def badge_status(v):
