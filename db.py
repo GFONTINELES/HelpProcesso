@@ -44,10 +44,9 @@ COL = {
 
 # Colunas que aparecem na tabela principal (na ordem desejada)
 COLS_TABELA = [
-    "tipo_documento", "objetivo", "macroprocesso", "codigo",
+    "tipo_documento", "macroprocesso", "codigo",
     "processo", "codigo_1", "sigla", "status",
-    "criticidade", "tipo_criterio", "ultima_revisao",
-    "tipo_atividade", "nivel_atual",
+    "criticidade", "tipo_criterio", "tipo_atividade",
 ]
 
 # Rótulos exibidos no cabeçalho da tabela

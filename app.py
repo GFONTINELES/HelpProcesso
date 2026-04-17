@@ -288,7 +288,7 @@ with st.sidebar:
         st.warning("Nenhum processo cadastrado ainda.")
 
     st.markdown('<span class="sb-section">🔍 Filtros</span>', unsafe_allow_html=True)
-    f_obj   = st.selectbox("Objetivo Estratégico", filter_opts(df_raw, "objetivo"))
+    #f_obj   = st.selectbox("Objetivo Estratégico", filter_opts(df_raw, "objetivo"))
     f_mac   = st.selectbox("Macroprocesso",         filter_opts(df_raw, "macroprocesso"))
     f_proc  = st.selectbox("Processo",              filter_opts(df_raw, "processo"))
     f_stat  = st.selectbox("Status",                filter_opts(df_raw, "status"))
@@ -307,7 +307,7 @@ with st.sidebar:
 df = df_raw.copy() if not df_raw.empty else pd.DataFrame()
 if not df.empty:
     for col, val in [
-        ("objetivo", f_obj), ("macroprocesso", f_mac), ("processo", f_proc),
+        ("macroprocesso", f_mac), ("processo", f_proc),
         ("status", f_stat), ("criticidade", f_crit), ("tipo_documento", f_tdoc),
         ("tipo_atividade", f_tativ), ("tipo_criterio", f_tcrit),
     ]:
